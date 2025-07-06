@@ -187,7 +187,7 @@ func (g *Generator) responseToIR(
 	var unsupported []string
 	for ct, content := range contents {
 		t, e := content.Type, content.Encoding
-		if e.JSON() || t.IsStream() || isBinary(t.Schema) {
+		if e.JSON() || e.EventStream() || t.IsStream() || isBinary(t.Schema) {
 			continue
 		}
 		delete(contents, ct)
@@ -217,9 +217,10 @@ func (g *Generator) responseToIR(
 			return nil, errors.Wrapf(err, "content: %q: wrap response type", contentType)
 		}
 		contents[contentType] = ir.Media{
-			Encoding:      media.Encoding,
-			Type:          t,
-			JSONStreaming: media.JSONStreaming,
+			Encoding:       media.Encoding,
+			Type:           t,
+			JSONStreaming:  media.JSONStreaming,
+			EventStreaming: media.EventStreaming,
 		}
 	}
 

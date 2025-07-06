@@ -175,6 +175,11 @@ func encode{{ $op.Name }}Response(response {{ $op.Responses.GoType }}, w http.Re
 		}
 		{{- end }}
 		{{ template "respond/return" $}}
+	{{- else if $.Encoding.EventStream }}
+		// Event stream encoding: the handler should write events directly to the response
+		// This is handled by the server-side handler, not by the response encoder
+		// The response value should be ignored for event streams
+		{{ template "respond/return" $}}
 	{{- else if $type.IsStream }}
 		{{- if $type.IsBase64Stream }}
 		writer := base64.NewEncoder(base64.StdEncoding, w)

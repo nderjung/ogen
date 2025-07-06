@@ -308,6 +308,23 @@ func (g *Generator) generateContents(
 			}
 
 			switch encoding {
+			case ir.EncodingEventStream:
+				// For event streams, generate a regular type for the event data
+				t, err := g.generateSchema(ctx, typeName, media.Schema, optional, nil)
+				if err != nil {
+					return errors.Wrap(err, "generate schema")
+				}
+
+				// Event data is JSON-encoded
+				t.AddFeature("json")
+
+				result[ir.ContentType(parsedContentType)] = ir.Media{
+					Encoding:       encoding,
+					Type:           t,
+					EventStreaming: true,
+				}
+				return nil
+
 			case ir.EncodingJSON:
 				t, err := g.generateSchema(ctx, typeName, media.Schema, optional, nil)
 				if err != nil {
@@ -397,9 +414,10 @@ func (g *Generator) generateContents(
 				return nil, err
 			}
 			result[ct] = ir.Media{
-				Type:          t,
-				Encoding:      m.Encoding,
-				JSONStreaming: m.JSONStreaming,
+				Type:           t,
+				Encoding:       m.Encoding,
+				JSONStreaming:  m.JSONStreaming,
+				EventStreaming: m.EventStreaming,
 			}
 		}
 	}

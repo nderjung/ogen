@@ -33,9 +33,10 @@ func walkResponseTypes(r *ir.Responses, walkFn func(name string, t *ir.Type) (*i
 					return errors.Wrapf(err, "%q", contentType)
 				}
 				r.Contents[contentType] = ir.Media{
-					Encoding:      media.Encoding,
-					Type:          typ,
-					JSONStreaming: media.JSONStreaming,
+					Encoding:       media.Encoding,
+					Type:           typ,
+					JSONStreaming:  media.JSONStreaming,
+					EventStreaming: media.EventStreaming,
 				}
 			}
 
@@ -67,9 +68,10 @@ func walkResponseTypes(r *ir.Responses, walkFn func(name string, t *ir.Type) (*i
 					return errors.Wrapf(err, "%q", contentType)
 				}
 				r.Contents[contentType] = ir.Media{
-					Encoding:      media.Encoding,
-					Type:          typ,
-					JSONStreaming: media.JSONStreaming,
+					Encoding:       media.Encoding,
+					Type:           typ,
+					JSONStreaming:  media.JSONStreaming,
+					EventStreaming: media.EventStreaming,
 				}
 			}
 
@@ -94,9 +96,10 @@ func walkResponseTypes(r *ir.Responses, walkFn func(name string, t *ir.Type) (*i
 				return errors.Wrapf(err, "default: %q", contentType)
 			}
 			def.Contents[contentType] = ir.Media{
-				Encoding:      media.Encoding,
-				Type:          typ,
-				JSONStreaming: media.JSONStreaming,
+				Encoding:       media.Encoding,
+				Type:           typ,
+				JSONStreaming:  media.JSONStreaming,
+				EventStreaming: media.EventStreaming,
 			}
 		}
 		if def.NoContent != nil {

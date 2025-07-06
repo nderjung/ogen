@@ -2,6 +2,13 @@
 {{- /*gotype: github.com/ogen-go/ogen/gen.TemplateConfig*/ -}}
 {{ template "header" $ }}
 
+import (
+	"github.com/ogen-go/ogen/sse"
+)
+
+// Prevent "sse" import error.
+var _ *sse.Event = nil
+
 {{- if $.PathsClientEnabled }}
 {{- range $op := $.Operations }}
 	{{- template "response_decoders/operation" op_elem $op $ }}
@@ -135,6 +142,59 @@ func decode{{ $op.Name }}Response(resp *http.Response) (res {{ $op.Responses.GoT
 				{{- end }}
 				return res, err
 			}
+		{{- else if $encoding.EventStream }}
+			// Event stream implementation - return a channel
+			eventCh := make(chan *{{ $type.Go }})
+
+			// Start a goroutine to process the event stream
+			go func() {
+				defer close(eventCh)
+
+				// Create an SSE reader
+				r := sse.NewReader(resp.Body)
+
+				// Process events until context is done or connection is closed
+				for {
+					select {
+					case <-resp.Request.Context().Done():
+						return
+					default:
+						event, err := r.ReadEvent()
+						if err != nil {
+							if !errors.Is(err, io.EOF) {
+								// Log or handle error if needed
+							}
+							return
+						}
+
+						// Skip if event data is empty or it's a keep-alive
+						if len(event.Data) == 0 || bytes.Equal(event.Data, []byte(":keep-alive")) {
+							continue
+						}
+
+						// Decode the event data
+						d := jx.DecodeBytes(event.Data)
+						var item {{ $type.Go }}
+						if err := func() error {
+							{{- template "json/dec" elem $type "item" }}
+							return nil
+						}(); err != nil {
+							// Log or handle error if needed
+							continue
+						}
+
+						// Send the decoded item to the channel
+						select {
+						case eventCh <- &item:
+						case <-resp.Request.Context().Done():
+							return
+						}
+					}
+				}
+			}()
+
+			// Return the channel directly
+			return eventCh, nil
 		{{- else if $type.IsStream }}
 			{{- if $type.IsBase64Stream }}
 			reader := base64.NewDecoder(base64.StdEncoding, resp.Body)
@@ -151,31 +211,33 @@ func decode{{ $op.Name }}Response(resp *http.Response) (res {{ $op.Responses.GoT
 			{{- errorf "%q: %s decoder not implemented" $encoding $type }}
 		{{- end }}
 
-		{{- if $type.NeedValidation }}
-		// Validate response.
-		if err := func() error {
-			{{- template "validate" elem $type "response" }}
-		}(); err != nil {
-				return res, errors.Wrap(err, "validate")
-		}
-		{{- end }}
-
-		{{- if $response.WithHeaders }}
-			var wrapper {{ $originalType.Name }}
-			wrapper.Response = response
-			{{- if $response.WithStatusCode }}
-			wrapper.StatusCode = resp.StatusCode
+		{{ if not $encoding.EventStream }}
+			{{- if $type.NeedValidation }}
+			// Validate response.
+			if err := func() error {
+				{{- template "validate" elem $type "response" }}
+			}(); err != nil {
+					return res, errors.Wrap(err, "validate")
+			}
 			{{- end }}
-			{{- template "decode_response_headers" $response }}
-			return {{ if $ptr }}&{{ end }}wrapper, nil
-		{{- else if $response.WithStatusCode }}
-			return {{ if $ptr }}&{{ end }}{{ $originalType.Name }}{
-				StatusCode: resp.StatusCode,
-				Response:   response,
-			}, nil
-		{{- else }}
-			return {{ if $ptr }}&{{ end }}response, nil
-		{{- end }}
+
+			{{- if $response.WithHeaders }}
+				var wrapper {{ $originalType.Name }}
+				wrapper.Response = response
+				{{- if $response.WithStatusCode }}
+				wrapper.StatusCode = resp.StatusCode
+				{{- end }}
+				{{- template "decode_response_headers" $response }}
+				return {{ if $ptr }}&{{ end }}wrapper, nil
+			{{- else if $response.WithStatusCode }}
+				return {{ if $ptr }}&{{ end }}{{ $originalType.Name }}{
+					StatusCode: resp.StatusCode,
+					Response:   response,
+				}, nil
+			{{- else }}
+				return {{ if $ptr }}&{{ end }}response, nil
+			{{- end }}
+		{{ end }}
 	{{- end }}{{/* Range over contents */}}
 	default:
 		return res, validate.InvalidContentType(ct)

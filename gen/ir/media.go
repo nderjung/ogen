@@ -23,6 +23,8 @@ const (
 	EncodingOctetStream Encoding = "application/octet-stream"
 	// EncodingTextPlain is Encoding for text.
 	EncodingTextPlain Encoding = "text/plain"
+	// EncodingEventStream is Encoding for server-sent events.
+	EncodingEventStream Encoding = "text/event-stream"
 )
 
 func (t Encoding) String() string { return string(t) }
@@ -37,6 +39,8 @@ func (t Encoding) OctetStream() bool { return t == EncodingOctetStream }
 
 func (t Encoding) TextPlain() bool { return t == EncodingTextPlain }
 
+func (t Encoding) EventStream() bool { return t == EncodingEventStream }
+
 type Media struct {
 	// Encoding is the parsed content type used for encoding, but not for header value.
 	Encoding Encoding
@@ -45,4 +49,7 @@ type Media struct {
 
 	// JSONStreaming indicates that the JSON media should be streamed.
 	JSONStreaming bool
+
+	// EventStreaming indicates that the media should be handled as Server-Sent Events.
+	EventStreaming bool
 }

@@ -55,10 +55,11 @@ func fixEqualResponses(ctx *genctx, op *ir.Operation) error {
 
 	statusCodes := xmaps.SortedKeys(op.Responses.StatusCode)
 	type candidate struct {
-		renameTo      string
-		encoding      ir.Encoding
-		JSONStreaming bool
-		typ           *ir.Type
+		renameTo       string
+		encoding       ir.Encoding
+		JSONStreaming  bool
+		EventStreaming bool
+		typ            *ir.Type
 
 		replaceNoc bool
 		replaceCT  ir.ContentType
@@ -128,19 +129,21 @@ func fixEqualResponses(ctx *genctx, op *ir.Operation) error {
 						}
 
 						candidates = append(candidates, candidate{
-							renameTo:      lname,
-							encoding:      lmedia.Encoding,
-							JSONStreaming: lmedia.JSONStreaming,
-							typ:           ltype,
-							replaceCT:     lct,
-							response:      lresp,
+							renameTo:       lname,
+							encoding:       lmedia.Encoding,
+							JSONStreaming:  lmedia.JSONStreaming,
+							EventStreaming: lmedia.EventStreaming,
+							typ:            ltype,
+							replaceCT:      lct,
+							response:       lresp,
 						}, candidate{
-							renameTo:      rname,
-							encoding:      rmedia.Encoding,
-							JSONStreaming: rmedia.JSONStreaming,
-							typ:           rtype,
-							replaceCT:     rct,
-							response:      rresp,
+							renameTo:       rname,
+							encoding:       rmedia.Encoding,
+							JSONStreaming:  rmedia.JSONStreaming,
+							EventStreaming: lmedia.EventStreaming,
+							typ:            rtype,
+							replaceCT:      rct,
+							response:       rresp,
 						})
 					}
 				}
@@ -163,9 +166,10 @@ func fixEqualResponses(ctx *genctx, op *ir.Operation) error {
 		}
 
 		candidate.response.Contents[candidate.replaceCT] = ir.Media{
-			Encoding:      candidate.encoding,
-			Type:          alias,
-			JSONStreaming: candidate.JSONStreaming,
+			Encoding:       candidate.encoding,
+			Type:           alias,
+			JSONStreaming:  candidate.JSONStreaming,
+			EventStreaming: candidate.EventStreaming,
 		}
 	}
 
@@ -215,11 +219,12 @@ func fixEqualRequests(ctx *genctx, op *ir.Operation) error {
 	op.Request = cloneRequest(op.Request)
 
 	type candidate struct {
-		renameTo      string
-		ctype         ir.ContentType
-		encoding      ir.Encoding
-		JSONStreaming bool
-		t             *ir.Type
+		renameTo       string
+		ctype          ir.ContentType
+		encoding       ir.Encoding
+		JSONStreaming  bool
+		EventStreaming bool
+		t              *ir.Type
 	}
 	var (
 		candidates []candidate
@@ -272,9 +277,10 @@ func fixEqualRequests(ctx *genctx, op *ir.Operation) error {
 		ctx.local.types[alias.Name] = alias
 
 		op.Request.Contents[candidate.ctype] = ir.Media{
-			Encoding:      candidate.encoding,
-			Type:          alias,
-			JSONStreaming: candidate.JSONStreaming,
+			Encoding:       candidate.encoding,
+			Type:           alias,
+			JSONStreaming:  candidate.JSONStreaming,
+			EventStreaming: candidate.EventStreaming,
 		}
 	}
 

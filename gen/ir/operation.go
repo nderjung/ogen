@@ -198,7 +198,60 @@ func (r *Responses) DoPass() bool {
 
 // GoType returns Go type of this response.
 func (r *Responses) GoType() string {
+	// Check if this is an event stream response
+	for _, resp := range r.StatusCode {
+		for _, media := range resp.Contents {
+			if media.EventStreaming {
+				return fmt.Sprintf("<-chan *%s", media.Type.Go())
+			}
+		}
+	}
+	for _, resp := range r.Pattern {
+		if resp != nil {
+			for _, media := range resp.Contents {
+				if media.EventStreaming {
+					return fmt.Sprintf("<-chan *%s", media.Type.Go())
+				}
+			}
+		}
+	}
+	if r.Default != nil {
+		for _, media := range r.Default.Contents {
+			if media.EventStreaming {
+				return fmt.Sprintf("<-chan *%s", media.Type.Go())
+			}
+		}
+	}
 	return reqRespGoType(r.Type)
+}
+
+// IsEventStream returns true if this response is an event stream response.
+func (r *Responses) IsEventStream() bool {
+	// Check if this is an event stream response
+	for _, resp := range r.StatusCode {
+		for _, media := range resp.Contents {
+			if media.EventStreaming {
+				return true
+			}
+		}
+	}
+	for _, resp := range r.Pattern {
+		if resp != nil {
+			for _, media := range resp.Contents {
+				if media.EventStreaming {
+					return true
+				}
+			}
+		}
+	}
+	if r.Default != nil {
+		for _, media := range r.Default.Contents {
+			if media.EventStreaming {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // ResultTuple returns result tuple for this response.
@@ -206,6 +259,65 @@ func (r *Responses) ResultTuple(a, b string) string {
 	if !r.DoPass() {
 		return fmt.Sprintf("(%s error)", b)
 	}
+
+	// Check if this is an event stream response
+	for _, resp := range r.StatusCode {
+		for _, media := range resp.Contents {
+			if media.EventStreaming {
+				typ := fmt.Sprintf("<-chan *%s", media.Type.Go())
+				if len(a)+len(b) > 0 {
+					// Ensure that all result tuple elements are named
+					// if any of them already is.
+					if a == "" {
+						a = "_"
+					}
+					if b == "" {
+						b = "_"
+					}
+				}
+				return fmt.Sprintf("(%s %s, %s error)", a, typ, b)
+			}
+		}
+	}
+	for _, resp := range r.Pattern {
+		if resp != nil {
+			for _, media := range resp.Contents {
+				if media.EventStreaming {
+					typ := fmt.Sprintf("<-chan *%s", media.Type.Go())
+					if len(a)+len(b) > 0 {
+						// Ensure that all result tuple elements are named
+						// if any of them already is.
+						if a == "" {
+							a = "_"
+						}
+						if b == "" {
+							b = "_"
+						}
+					}
+					return fmt.Sprintf("(%s %s, %s error)", a, typ, b)
+				}
+			}
+		}
+	}
+	if r.Default != nil {
+		for _, media := range r.Default.Contents {
+			if media.EventStreaming {
+				typ := fmt.Sprintf("<-chan *%s", media.Type.Go())
+				if len(a)+len(b) > 0 {
+					// Ensure that all result tuple elements are named
+					// if any of them already is.
+					if a == "" {
+						a = "_"
+					}
+					if b == "" {
+						b = "_"
+					}
+				}
+				return fmt.Sprintf("(%s %s, %s error)", a, typ, b)
+			}
+		}
+	}
+
 	typ := reqRespGoType(r.Type)
 	if len(a)+len(b) > 0 {
 		// Ensure that all result tuple elements are named

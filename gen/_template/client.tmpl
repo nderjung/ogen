@@ -241,7 +241,7 @@ func (c *{{ if $op.WebhookInfo }}Webhook{{ end }}Client) send{{ $op.Name }}(ctx 
 	{{- if $op.WebhookInfo }}, targetURL string{{ end }}
 	{{- if $op.Request }}, request {{ $op.Request.GoType }}{{ end }}
 	{{- if $op.Params }}, params {{ $op.Name }}Params {{ end }}
-	{{- if $cfg.RequestOptionsEnabled }}, requestOptions ...RequestOption {{ end }}) (res {{ $op.Responses.GoType }}, err error) {
+	{{- if $cfg.RequestOptionsEnabled }}, requestOptions ...RequestOption {{ end }}) {{ $op.Responses.ResultTuple "res" "err" }} {
 
 	{{- if and $op.Request $cfg.RequestValidationEnabled }}{{/* Request validation */}}
 		{{- if $op.Request.Type.IsInterface }}
@@ -447,7 +447,9 @@ func (c *{{ if $op.WebhookInfo }}Webhook{{ end }}Client) send{{ $op.Name }}(ctx 
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
+	{{ if not $op.Responses.IsEventStream }}
 	defer resp.Body.Close()
+	{{ end }}
 
     {{ if $cfg.EditorsEnabled -}}
     if err := c.onResponse(ctx, resp); err != nil {
